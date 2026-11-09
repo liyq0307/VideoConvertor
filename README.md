@@ -53,12 +53,14 @@ cmake --build build --config Release -j
 系统依赖（Debian / Ubuntu）：
 
 ```
-sudo apt install build-essential cmake libgtk-3-dev libgl1-mesa-dev xorg-dev
+sudo apt install build-essential cmake libgtk-3-dev libgl1-mesa-dev \
+                 libx11-dev libxrandr-dev libxinerama-dev libxcursor-dev libxi-dev
 ```
 
-> `libgtk-3-dev` 供文件对话框库 nfd 使用；`xorg-dev` / `libgl1-mesa-dev` 供 GLFW 与 OpenGL3 后端使用。
-> 没有 GTK3 开发环境时可改用 `-DCONVERTER_NFD_PORTAL=ON`，文件对话框走 xdg-desktop-portal。
-> 缺少 `wayland-scanner` 时 GLFW 自动只编 X11 后端（也可显式 `-DCONVERTER_GLFW_WAYLAND=OFF`）；想启用 Wayland 需额外安装 `libwayland-dev` 与 `wayland-protocols`。
+> · X11 开发包（`libx11-dev` 等五项，或直接装元包 `xorg-dev`）供 GLFW 与 OpenGL3 后端使用；
+> · `libgtk-3-dev` 供文件对话框库 nfd 使用（没有 GTK3 开发环境时可改用 `-DCONVERTER_NFD_PORTAL=ON`，走 xdg-desktop-portal）；
+> · 想在 Wayland 下运行（可选）：额外装 `libwayland-dev wayland-protocols libwayland-bin libxkbcommon-dev`；缺少 `wayland-scanner` 时 GLFW 自动只编 X11 后端，也可显式 `-DCONVERTER_GLFW_WAYLAND=OFF`；
+> · 两者都探测不到时 CMake 会直接报错并列出安装命令（GUI 依赖窗口系统后端，无法跳过）。
 
 ```
 cmake -S . -B build

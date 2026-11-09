@@ -41,18 +41,43 @@ function(converter_setup_gui_deps)
         set(GLFW_BUILD_EXAMPLES OFF CACHE BOOL "" FORCE)
         set(GLFW_INSTALL        OFF CACHE BOOL "" FORCE)
 
-        # GLFW 3.4 只要检测到 Wayland 依赖就默认启用 Wayland 后端，但在缺少
-        # wayland-scanner 的机器上会直接配置失败。因此仅在 wayland-scanner 可用时启用，
-        # 否则退回纯 X11（X11 始终开启）。
-        find_program(CONVERTER_WAYLAND_SCANNER wayland-scanner)
-        if(CONVERTER_GLFW_WAYLAND AND CONVERTER_WAYLAND_SCANNER)
-            set(GLFW_BUILD_WAYLAND ON CACHE BOOL "" FORCE)
-            message(STATUS "GLFW: 启用 Wayland 后端（${CONVERTER_WAYLAND_SCANNER}）")
-        else()
-            set(GLFW_BUILD_WAYLAND OFF CACHE BOOL "" FORCE)
-            message(STATUS "GLFW: 未找到 wayland-scanner，仅启用 X11 后端")
+        # ---- 窗口系统后端探测：X11 / Wayland 至少可用其一 ----
+        # GLFW 3.4 的后端是硬依赖：启用了却缺开发包就会直接 CMake Error。
+        # 这里先在外部探测，只启用真正可编译的后端；两者都没有时给出明确的安装提示。
+        find_package(X11 QUIET)
+        set(_glfw_x11 OFF)
+        if(X11_FOUND AND X11_Xrandr_FOUND AND X11_Xinerama_FOUND AND X11_Xcursor_FOUND AND X11_Xi_FOUND)
+            set(_glfw_x11 ON)
         endif()
-        set(GLFW_BUILD_X11 ON CACHE BOOL "" FORCE)
+
+        set(_glfw_wayland OFF)
+        if(CONVERTER_GLFW_WAYLAND)
+            find_program(CONVERTER_WAYLAND_SCANNER wayland-scanner)
+            find_package(PkgConfig QUIET)
+            if(CONVERTER_WAYLAND_SCANNER AND PkgConfig_FOUND)
+                pkg_check_modules(CONVERTER_WAYLAND_CLIENT QUIET
+                    wayland-client wayland-cursor wayland-egl xkbcommon)
+                if(CONVERTER_WAYLAND_CLIENT_FOUND)
+                    set(_glfw_wayland ON)
+                endif()
+            endif()
+        endif()
+
+        if(NOT _glfw_x11 AND NOT _glfw_wayland)
+            message(FATAL_ERROR
+                "未找到可用的窗口系统开发包，GUI 无法构建。请安装其中之一：\n"
+                "  · X11     : sudo apt install libx11-dev libxrandr-dev libxinerama-dev libxcursor-dev libxi-dev（或 xorg-dev）\n"
+                "  · Wayland : sudo apt install libwayland-dev wayland-protocols libwayland-bin libxkbcommon-dev")
+        endif()
+
+        set(GLFW_BUILD_X11 ${_glfw_x11} CACHE BOOL "" FORCE)
+        set(GLFW_BUILD_WAYLAND ${_glfw_wayland} CACHE BOOL "" FORCE)
+        if(_glfw_x11)
+            message(STATUS "GLFW: 启用 X11 后端")
+        endif()
+        if(_glfw_wayland)
+            message(STATUS "GLFW: 启用 Wayland 后端（${CONVERTER_WAYLAND_SCANNER}）")
+        endif()
 
         FetchContent_Declare(glfw
             GIT_REPOSITORY https://github.com/glfw/glfw.git
