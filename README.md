@@ -58,6 +58,7 @@ sudo apt install build-essential cmake libgtk-3-dev libgl1-mesa-dev xorg-dev
 
 > `libgtk-3-dev` 供文件对话框库 nfd 使用；`xorg-dev` / `libgl1-mesa-dev` 供 GLFW 与 OpenGL3 后端使用。
 > 没有 GTK3 开发环境时可改用 `-DCONVERTER_NFD_PORTAL=ON`，文件对话框走 xdg-desktop-portal。
+> 缺少 `wayland-scanner` 时 GLFW 自动只编 X11 后端（也可显式 `-DCONVERTER_GLFW_WAYLAND=OFF`）；想启用 Wayland 需额外安装 `libwayland-dev` 与 `wayland-protocols`。
 
 ```
 cmake -S . -B build
@@ -105,6 +106,7 @@ cmake --install build --prefix <安装目录>
 | `CONVERTER_FFMPEG_EXE` / `CONVERTER_FFPROBE_EXE` | 空 | 显式指定可执行文件 |
 | `CONVERTER_FFMPEG_URL` | 空 | 覆盖下载地址（内网镜像/测试） |
 | `CONVERTER_NFD_PORTAL` | `OFF` | Linux 文件对话框改用 xdg-desktop-portal |
+| `CONVERTER_GLFW_WAYLAND` | `ON` | Linux 在找到 `wayland-scanner` 时启用 GLFW 的 Wayland 后端，否则自动退回纯 X11 |
 
 ## 使用（GUI）
 

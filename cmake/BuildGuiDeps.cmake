@@ -11,6 +11,9 @@
 function(converter_setup_gui_deps)
     include(FetchContent)
 
+    # Linux: 是否在 wayland-scanner 可用时启用 GLFW 的 Wayland 后端（否则纯 X11）
+    option(CONVERTER_GLFW_WAYLAND "GLFW 启用 Wayland 后端（需 wayland-scanner）" ON)
+
     # ---- Dear ImGui ----
     FetchContent_Declare(imgui
         GIT_REPOSITORY https://github.com/ocornut/imgui.git
@@ -37,6 +40,20 @@ function(converter_setup_gui_deps)
         set(GLFW_BUILD_TESTS    OFF CACHE BOOL "" FORCE)
         set(GLFW_BUILD_EXAMPLES OFF CACHE BOOL "" FORCE)
         set(GLFW_INSTALL        OFF CACHE BOOL "" FORCE)
+
+        # GLFW 3.4 只要检测到 Wayland 依赖就默认启用 Wayland 后端，但在缺少
+        # wayland-scanner 的机器上会直接配置失败。因此仅在 wayland-scanner 可用时启用，
+        # 否则退回纯 X11（X11 始终开启）。
+        find_program(CONVERTER_WAYLAND_SCANNER wayland-scanner)
+        if(CONVERTER_GLFW_WAYLAND AND CONVERTER_WAYLAND_SCANNER)
+            set(GLFW_BUILD_WAYLAND ON CACHE BOOL "" FORCE)
+            message(STATUS "GLFW: 启用 Wayland 后端（${CONVERTER_WAYLAND_SCANNER}）")
+        else()
+            set(GLFW_BUILD_WAYLAND OFF CACHE BOOL "" FORCE)
+            message(STATUS "GLFW: 未找到 wayland-scanner，仅启用 X11 后端")
+        endif()
+        set(GLFW_BUILD_X11 ON CACHE BOOL "" FORCE)
+
         FetchContent_Declare(glfw
             GIT_REPOSITORY https://github.com/glfw/glfw.git
             GIT_TAG        3.4
